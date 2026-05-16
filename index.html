@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Circuit Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes dash {
+            to { stroke-dashoffset: -20; }
+        }
+        .animate-dash {
+            animation: dash 1s linear infinite;
+        }
+        .svg-transition {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-screen max-h-screen bg-slate-900 text-slate-100 p-2 md:p-3 font-sans flex flex-col items-center overflow-hidden">
+
+    <div class="max-w-7xl w-full h-full flex flex-col gap-2.5">
+        
+        <!-- Top Panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-2.5 md:gap-3 shrink-0 items-stretch">
+            
+            <!-- Switch Block -->
+            <div class="bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 flex flex-col items-center justify-center shadow-lg lg:col-span-1">
+                <h1 class="text-2xl md:text-3xl font-bold text-cyan-400 text-center w-full mb-1.5 leading-tight">Electric Circuit</h1>
+                
+                <div class="flex flex-col items-center justify-center w-full">
+                    <h2 class="text-base md:text-lg font-semibold mb-1.5 text-slate-300">Switch</h2>
+                    
+                    <button id="switchBtn" class="relative inline-flex h-8 w-16 items-center rounded-full transition-colors focus:outline-none bg-slate-600" onclick="toggleSwitch()">
+                        <span id="switchKnob" class="inline-block h-6 w-6 transform rounded-full bg-white transition-transform" style="transform: translateX(4px);"></span>
+                    </button>
+                    
+                    <p id="statusText" class="mt-1 font-medium text-center leading-tight">
+                        <span class="text-lg">Status:</span> <br><span class="text-slate-400 uppercase font-bold text-xl">Open</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Macroscopic Diagram and Controls -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 flex flex-row justify-between items-stretch shadow-lg lg:col-span-3 overflow-hidden p-0">
+                
+                <!-- Diagram Container -->
+                <div class="flex-1 flex justify-center items-center px-1 py-0 relative">
+                    <svg viewBox="0 0 850 225" class="w-full h-full max-h-[145px] drop-shadow-xl">
+                        <defs>
+                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur id="glowBlur" stdDeviation="10" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+
+                        <!-- Wires -->
+                        <path d="M 345 145 L 10 145 L 10 35 L 360 35" fill="none" stroke="#475569" stroke-width="6" />
+                        <path d="M 430 35 L 780 35 L 780 145 L 445 145" fill="none" stroke="#475569" stroke-width="6" />
+
+                        <!-- Electron Flow -->
+                        <path id="svgElectronFlow" d="M 345 145 L 10 145 L 10 35 L 780 35 L 780 145 L 445 145" fill="none" stroke="#06b6d4" stroke-width="3" stroke-dasharray="10 10" class="animate-dash" style="display: none;" />
+
+                        <!-- Battery -->
+                        <g transform="translate(395, 145)">
+                            <rect x="-50" y="-20" width="100" height="40" fill="#1e293b" stroke="#94a3b8" stroke-width="3" rx="4" />
+                            <rect x="50" y="-10" width="10" height="20" fill="#ef4444" rx="2" />
+                            <rect x="-60" y="-10" width="10" height="20" fill="#3b82f6" rx="2" />
+                            <text id="svgBatteryText" x="0" y="6" fill="white" font-size="18" text-anchor="middle" font-weight="bold">1.5V</text>
+                            
+                            <text x="-110" y="42" fill="#3b82f6" font-size="26" text-anchor="middle" font-weight="bold">Anode</text>
+                            <text x="-110" y="72" fill="#3b82f6" font-size="34" text-anchor="middle" font-weight="bold">(-)</text>
+                            
+                            <text x="110" y="42" fill="#ef4444" font-size="26" text-anchor="middle" font-weight="bold">Cathode</text>
+                            <text x="110" y="72" fill="#ef4444" font-size="34" text-anchor="middle" font-weight="bold">(+)</text>
+                        </g>
+
+                        <!-- Switch SVG -->
+                        <g transform="translate(395, 35)">
+                            <circle cx="-35" cy="0" r="5" fill="#94a3b8" />
+                            <circle cx="35" cy="0" r="5" fill="#94a3b8" />
+                            <line id="svgSwitchLine" x1="-35" y1="0" x2="15" y2="-30" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round" style="transform-origin: -35px 0px;" class="svg-transition" />
+                        </g>
+                        
+                        <!-- Bulb -->
+                        <g transform="translate(780, 90)">
+                            <rect id="svgBulbNeck" x="5" y="-15" width="20" height="30" fill="#334155" class="svg-transition" />
+                            <circle id="svgBulbGlass" cx="35" cy="0" r="25" fill="#334155" class="svg-transition" />
+                            <path id="svgBulbFilament" d="M 0 -6 L 20 -12 L 35 0 L 20 12 L 0 6" fill="none" stroke="#94a3b8" stroke-width="2" class="svg-transition" />
+                            <rect x="-10" y="-18" width="20" height="36" fill="#64748b" rx="2" stroke="#475569" stroke-width="2" />
+                            <text x="35" y="65" fill="#fb923c" font-size="26" text-anchor="middle" font-weight="bold">10Ω</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Right Side Panel -->
+                <div class="w-16 md:w-20 shrink-0 bg-slate-900/60 border-l border-slate-700 flex flex-col justify-center items-center gap-1 p-1 relative z-10">
+                    <span class="text-[10px] md:text-xs text-slate-400 font-bold uppercase text-center leading-none mb-1">Source<br>Voltage</span>
+                    <button onclick="changeVoltage(1.5)" class="w-7 h-7 md:w-9 md:h-9 rounded-full bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-bold text-lg flex items-center justify-center transition-colors shadow-md border border-slate-600 pb-0.5">+</button>
+                    <span id="voltajeDisplay" class="font-mono text-sm md:text-base font-bold text-yellow-400 my-0.5">1.5V</span>
+                    <button onclick="changeVoltage(-1.5)" class="w-7 h-7 md:w-9 md:h-9 rounded-full bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-bold text-lg flex items-center justify-center transition-colors shadow-md border border-slate-600 pb-0.5">-</button>
+                    <button id="btnRepair" onclick="repairBulb()" class="hidden mt-1 px-1.5 py-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded text-[9px] uppercase font-bold hover:bg-red-500/40 transition-colors shadow-lg">Repair</button>
+                </div>
+            </div>
+
+            <!-- Instruments Block -->
+            <div class="bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 flex flex-col gap-0.5 shadow-lg lg:col-span-1 justify-center">
+                <h2 class="text-xl font-semibold mb-0.5 text-slate-200 text-center">Measurements</h2>
+                <div class="flex flex-col">
+                    <span class="text-slate-300 text-[11px] md:text-xs text-center font-medium mb-0">Voltmeter</span>
+                    <div class="bg-slate-900 px-2 md:px-3 py-1 rounded-lg border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400 text-sm uppercase font-bold">V</span>
+                        <span class="font-mono text-base md:text-lg font-bold text-yellow-400"><span id="valVoltaje">0.00</span>V</span>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-slate-300 text-[11px] md:text-xs text-center font-medium mb-0">Ammeter</span>
+                    <div class="bg-slate-900 px-2 md:px-3 py-1 rounded-lg border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400 text-sm uppercase font-bold">I</span>
+                        <span class="font-mono text-base md:text-lg font-bold text-cyan-400"><span id="valCorriente">0.0000</span>A</span>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-slate-300 text-[11px] md:text-xs text-center font-medium mb-0">Ohmmeter</span>
+                    <div class="bg-slate-900 px-2 md:px-3 py-1 rounded-lg border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400 text-sm uppercase font-bold">R</span>
+                        <span class="font-mono text-base md:text-lg font-bold text-orange-400"><span id="valResistencia">10.01</span>Ω</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation Panels -->
+        <div class="flex flex-col gap-1.5 flex-1 shrink-0">
+            <div class="bg-slate-800 px-1.5 md:px-2 py-1 rounded-xl border border-slate-700 shadow-lg flex-1 flex items-center justify-center transition-colors duration-300 min-h-[50px]" id="topExplanationPanel">
+                <p id="topExplanationText" class="text-[12px] md:text-sm leading-tight md:leading-snug text-slate-300 text-justify max-w-5xl">
+                    <strong class="text-orange-400">Macroscopic View:</strong> There is no electric current because it requires an energy or voltage source and a metallic conductor connected to form a closed loop.
+                </p>
+            </div>
+            
+            <div class="bg-slate-800 px-1.5 md:px-2 py-1 rounded-xl border border-slate-700 shadow-lg flex-1 flex items-center justify-center transition-colors duration-300 min-h-[60px]" id="explanationPanel">
+                <p id="explanationText" class="text-[12px] md:text-sm leading-tight md:leading-snug text-slate-300 text-justify max-w-5xl">
+                    <strong class="text-slate-400">Open Circuit:</strong> Free electrons move randomly and chaotically throughout the conductor due to thermal agitation, constantly colliding, but without any net displacement towards any end.
+                </p>
+            </div>
+        </div>
+
+        <!-- Bottom Panel: Microscopic View -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden flex flex-col shrink-0">
+            <div class="bg-slate-900 px-3 py-2 border-b border-slate-700 flex justify-between items-center shrink-0">
+                <h2 class="text-sm font-semibold text-cyan-400">Microscopic View of the Conductor</h2>
+                <button id="btnGrosor" onclick="toggleGrosor()" class="hidden mx-auto px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-[10px] md:text-xs text-white font-bold uppercase transition-colors shadow">Narrow Conductor</button>
+                <div class="flex gap-4 text-xs font-medium uppercase tracking-wider">
+                    <span class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_#3b82f6]"></div> Electron</span>
+                    <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-orange-700 border border-orange-500"></div> Atom</span>
+                </div>
+            </div>
+            <div class="relative w-full bg-[#0a0f18] overflow-hidden" id="canvasContainer" style="height: 120px;">
+                <canvas id="microCanvas" class="absolute inset-0 w-full h-full"></canvas>
+                <div class="absolute top-2 left-3 bg-slate-900/60 px-3 py-1 rounded border border-blue-500/30 backdrop-blur-sm pointer-events-none">
+                    <p class="text-blue-400 font-bold text-2xl md:text-3xl">Anode (-)</p>
+                </div>
+                <div class="absolute top-2 right-3 bg-slate-900/60 px-3 py-1 rounded border border-red-500/30 backdrop-blur-sm text-right pointer-events-none">
+                    <p class="text-red-400 font-bold text-2xl md:text-3xl">Cathode (+)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex flex-row justify-center items-center gap-3 text-[10px] md:text-xs text-slate-500 shrink-0 px-2 mt-auto pt-0.5 w-full whitespace-nowrap">
+            <img src="https://visitor-badge.laobi.icu/badge?page_id=EAG1964.phychem.lab&left_text=Visits&left_color=gray&right_color=blue" alt="Visits" class="h-4 md:h-5 inline-block">
+            <span>Author: <strong>EAG1964</strong> | 2026 | <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" class="hover:text-cyan-400 transition-colors">CC BY-NC-SA 4.0</a></span>
+        </div>
+    </div>
+
+    <script>
+        let interruptorCerrado = false;
+        let voltajeBateria = 1.5;
+        let bombillaFundida = false;
+        let conductorEstrecho = false;
+        let resistenciaTotal = 10.01;
+
+        const btn = document.getElementById('switchBtn');
+        const knob = document.getElementById('switchKnob');
+        const statusText = document.getElementById('statusText');
+        const valVoltaje = document.getElementById('valVoltaje');
+        const valCorriente = document.getElementById('valCorriente');
+        const valResistencia = document.getElementById('valResistencia');
+        const explanationText = document.getElementById('explanationText');
+        const explanationPanel = document.getElementById('explanationPanel');
+        const topExplanationText = document.getElementById('topExplanationText');
+        const topExplanationPanel = document.getElementById('topExplanationPanel');
+        const btnGrosor = document.getElementById('btnGrosor');
+        
+        const svgElectronFlow = document.getElementById('svgElectronFlow');
+        const svgSwitchLine = document.getElementById('svgSwitchLine');
+        const svgBulbGlass = document.getElementById('svgBulbGlass');
+        const svgBulbNeck = document.getElementById('svgBulbNeck');
+        const svgBulbFilament = document.getElementById('svgBulbFilament');
+        const glowBlur = document.getElementById('glowBlur');
+
+        const basePanelClasses = "px-1.5 md:px-2 py-1 rounded-xl border shadow-lg flex-1 flex items-center justify-center transition-colors duration-300 ";
+
+        function toggleGrosor() {
+            conductorEstrecho = !conductorEstrecho;
+            resistenciaTotal = conductorEstrecho ? 10.02 : 10.01;
+            btnGrosor.innerText = conductorEstrecho ? 'Widen Conductor' : 'Narrow Conductor';
+            if(window.reinitMicroscopicView) window.reinitMicroscopicView();
+            refreshCircuit();
+        }
+
+        function changeVoltage(delta) {
+            let newVal = voltajeBateria + delta;
+            if (newVal >= 0 && newVal <= 9.1) {
+                voltajeBateria = newVal;
+                document.getElementById('voltajeDisplay').innerText = voltajeBateria.toFixed(1) + 'V';
+                document.getElementById('svgBatteryText').innerText = voltajeBateria.toFixed(1) + 'V';
+                refreshCircuit();
+            }
+        }
+
+        function toggleSwitch() {
+            interruptorCerrado = !interruptorCerrado;
+            if (!interruptorCerrado && conductorEstrecho) {
+                conductorEstrecho = false;
+                resistenciaTotal = 10.01;
+                btnGrosor.innerText = 'Narrow Conductor';
+                if(window.reinitMicroscopicView) window.reinitMicroscopicView();
+            }
+            refreshCircuit();
+        }
+
+        function repairBulb() {
+            bombillaFundida = false;
+            document.getElementById('btnRepair').classList.add('hidden');
+            if (voltajeBateria >= 6.0) {
+                changeVoltage(-(voltajeBateria - 1.5));
+            } else {
+                refreshCircuit();
+            }
+        }
+
+        function refreshCircuit() {
+            if (interruptorCerrado && voltajeBateria >= 6.0 && !bombillaFundida) {
+                bombillaFundida = true;
+                document.getElementById('btnRepair').classList.remove('hidden');
+            }
+
+            const circuitoActivo = interruptorCerrado && !bombillaFundida;
+            const corriente = circuitoActivo ? (voltajeBateria / resistenciaTotal) : 0;
+            const voltajeMedido = circuitoActivo ? voltajeBateria : 0;
+
+            if (circuitoActivo) {
+                btnGrosor.classList.remove('hidden');
+            } else {
+                btnGrosor.classList.add('hidden');
+            }
+
+            if (interruptorCerrado) {
+                btn.classList.replace('bg-slate-600', 'bg-cyan-500');
+                knob.style.transform = 'translateX(36px)'; 
+                statusText.innerHTML = '<span class="text-lg">Status:</span> <br><span class="text-cyan-400 uppercase font-bold text-xl">Closed</span>';
+                svgSwitchLine.setAttribute('x2', '35');
+                svgSwitchLine.setAttribute('y2', '0');
+            } else {
+                btn.classList.replace('bg-cyan-500', 'bg-slate-600');
+                knob.style.transform = 'translateX(4px)';
+                statusText.innerHTML = '<span class="text-lg">Status:</span> <br><span class="text-slate-400 uppercase font-bold text-xl">Open</span>';
+                svgSwitchLine.setAttribute('x2', '15');
+                svgSwitchLine.setAttribute('y2', '-30');
+            }
+
+            if (circuitoActivo && voltajeBateria > 0) {
+                svgElectronFlow.style.display = 'block';
+                let animSpeed = Math.max(0.15, 1.5 / voltajeBateria);
+                svgElectronFlow.style.animationDuration = `${animSpeed}s`;
+                let glowInt = (voltajeBateria / 1.5) * 6;
+                glowBlur.setAttribute('stdDeviation', glowInt);
+                
+                let bulbColor = '#fef08a';
+                if (voltajeBateria >= 3.0) bulbColor = '#fde047';
+                if (voltajeBateria >= 4.5) bulbColor = '#ffffff';
+
+                svgBulbGlass.setAttribute('fill', bulbColor);
+                svgBulbGlass.setAttribute('filter', 'url(#glow)');
+                svgBulbNeck.setAttribute('fill', bulbColor);
+                svgBulbFilament.setAttribute('stroke', '#fbbf24');
+                svgBulbFilament.setAttribute('d', 'M 0 -6 L 20 -12 L 35 0 L 20 12 L 0 6');
+
+                topExplanationPanel.className = basePanelClasses + "bg-slate-800 border-yellow-600/50 min-h-[50px]";
+                topExplanationText.innerHTML = '<strong class="text-yellow-400">Ohm\'s Law:</strong> Current is directly proportional to voltage and inversely proportional to resistance. <span class="inline-flex items-center ml-2 font-mono bg-slate-900 px-3 py-1 rounded text-cyan-400 font-bold border border-slate-700 align-middle"><span>I =</span><span class="flex flex-col items-center ml-2 text-sm leading-none"><span class="border-b-2 border-cyan-400 pb-0.5 px-1">V</span><span class="pt-0.5 px-1">R</span></span></span>';
+
+                if (conductorEstrecho) {
+                    explanationPanel.className = basePanelClasses + "bg-slate-800 border-indigo-600/50 min-h-[60px]";
+                    explanationText.innerHTML = `<strong class="text-indigo-400">Narrow Conductor (${voltajeBateria.toFixed(1)}V):</strong> By reducing the passage to only 2 rows of atoms, the cross-sectional area decreases. Electrons have less space, they "bottleneck" and collide more, doubling the cable's resistance from 0.01Ω to 0.02Ω (Pouillet's Law) and slightly lowering the current. Watch the meters.`;
+                } else {
+                    explanationPanel.className = basePanelClasses + "bg-slate-800 border-cyan-700/50 min-h-[60px]";
+                    if (voltajeBateria === 1.5) {
+                        explanationText.innerHTML = `<strong class="text-cyan-400">Closed Circuit (1.5V):</strong> The electric field is established throughout the circuit instantaneously. Electrons are generated at the anode, pushing adjacent ones and transmitting this push in a chain from one end to the other. This coordinated flow (current) travels colliding with atoms and generating resistance until reaching the consuming cathode. The copper wire has minimal resistance (0.01Ω). The real opposition (10Ω) is in the bulb filament, where electrons collide violently to generate light <strong class="text-orange-400">(just like the heat in a toaster or a phone while gaming)</strong>.`;
+                    } else {
+                        explanationText.innerHTML = `<strong class="text-cyan-400">Closed Circuit (${voltajeBateria.toFixed(1)}V):</strong> At higher voltage, electrons receive more push. The massive number of collisions in the bulb filament (10Ω) generates intense light and heat (Joule Effect).`;
+                    }
+                }
+            } else if (circuitoActivo && voltajeBateria === 0) {
+                svgElectronFlow.style.display = 'none';
+                svgBulbGlass.setAttribute('filter', '');
+                svgBulbGlass.setAttribute('fill', '#334155');
+                svgBulbNeck.setAttribute('fill', '#334155');
+                svgBulbFilament.setAttribute('stroke', '#94a3b8');
+                topExplanationPanel.className = basePanelClasses + "bg-slate-800 border-yellow-600/50 min-h-[50px]";
+                topExplanationText.innerHTML = '<strong class="text-yellow-400">Ohm\'s Law:</strong> If voltage is 0V, the resulting current will always be 0 Amperes, regardless of the circuit resistance.';
+                explanationPanel.className = basePanelClasses + "bg-slate-800 border-slate-500 min-h-[60px]";
+                explanationText.innerHTML = `<strong class="text-slate-400">Closed Circuit (No Voltage):</strong> Although the circuit is physically closed, the source has no energy (0V). No electric field exists to push the electrons, so there is no flow.`;
+            } else {
+                svgElectronFlow.style.display = 'none';
+                svgBulbGlass.setAttribute('filter', '');
+                if (bombillaFundida) {
+                    svgBulbGlass.setAttribute('fill', '#0f172a');
+                    svgBulbNeck.setAttribute('fill', '#0f172a');
+                    svgBulbFilament.setAttribute('stroke', '#475569');
+                    svgBulbFilament.setAttribute('d', 'M 0 -6 L 10 -9 M 25 -3 L 35 0 L 20 12 L 0 6'); 
+                    topExplanationPanel.className = basePanelClasses + "bg-red-950/40 border-red-600/50 min-h-[50px]";
+                    topExplanationText.innerHTML = '<strong class="text-red-500">Extreme Overload (Joule Effect)!</strong> The voltage was excessive for the resistance. The amount of electrons and their brutal collisions generated so much heat that the metal wire melted.';
+                    explanationPanel.className = basePanelClasses + "bg-red-950/40 border-red-600/50 min-h-[60px]";
+                    explanationText.innerHTML = '<strong class="text-red-400">Open Circuit (Broken Filament):</strong> When the filament breaks, the circuit is no longer a continuous path. Electrons cannot cross the empty gap and the entire flow stops completely.';
+                } else {
+                    svgBulbGlass.setAttribute('fill', '#334155');
+                    svgBulbNeck.setAttribute('fill', '#334155');
+                    svgBulbFilament.setAttribute('stroke', '#94a3b8');
+                    svgBulbFilament.setAttribute('d', 'M 0 -6 L 20 -12 L 35 0 L 20 12 L 0 6');
+                    topExplanationPanel.className = basePanelClasses + "bg-slate-800 border-slate-700 min-h-[50px]";
+                    topExplanationText.innerHTML = '<strong class="text-orange-400">Macroscopic View:</strong> There is no electric current because it requires an energy or voltage source and a metallic conductor connected to form a closed loop.';
+                    explanationPanel.className = basePanelClasses + "bg-slate-800 border-slate-700 min-h-[60px]";
+                    explanationText.innerHTML = '<strong class="text-slate-400">Open Circuit:</strong> Free electrons move randomly and chaotically throughout the conductor due to thermal agitation, constantly colliding, but without any net displacement towards any end.';
+                }
+            }
+            valVoltaje.innerText = voltajeMedido.toFixed(2);
+            valCorriente.innerText = corriente.toFixed(4);
+            valResistencia.innerText = resistenciaTotal.toFixed(2);
+        }
+
+        window.onload = function() {
+            const canvas = document.getElementById('microCanvas');
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('canvasContainer');
+            function resize() {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                initPhysics();
+            }
+            window.addEventListener('resize', resize);
+            let atoms = [];
+            let electrons = [];
+            let currentCTop = 0;
+            let currentCBottom = 0;
+            function initPhysics() {
+                atoms = [];
+                electrons = [];
+                const width = canvas.width;
+                const height = canvas.height;
+                const espacio = 46;
+                const rowCount = conductorEstrecho ? 2 : 3;
+                const gridHeight = (rowCount - 1) * espacio;
+                const availableHeight = conductorEstrecho ? (gridHeight + 30) : height;
+                currentCTop = (height - availableHeight) / 2;
+                currentCBottom = currentCTop + availableHeight;
+                const verticalOffset = currentCTop + (availableHeight - gridHeight) / 2;
+                for (let y = verticalOffset; y <= currentCBottom - 10; y += espacio) {
+                    for (let x = espacio/2; x < width; x += espacio) {
+                        const rowIdx = Math.round((y - verticalOffset) / espacio);
+                        const offsetX = (rowIdx % 2 === 0) ? 0 : espacio / 2;
+                        atoms.push({ x: x + offsetX, y: y, r: 12, flash: 0 });
+                    }
+                }
+                const numElectrons = conductorEstrecho ? 75 : 150;
+                for (let i = 0; i < numElectrons; i++) {
+                    electrons.push({
+                        x: Math.random() * width,
+                        y: currentCTop + 3 + Math.random() * (availableHeight - 6),
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 4,
+                        r: 2.5
+                    });
+                }
+            }
+            window.reinitMicroscopicView = initPhysics;
+            function draw() {
+                ctx.fillStyle = '#0a0f18';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                atoms.forEach(atom => {
+                    if (atom.flash > 0) atom.flash -= 0.03;
+                    ctx.beginPath();
+                    ctx.arc(atom.x, atom.y, atom.r, 0, Math.PI * 2);
+                    const heat = Math.floor(atom.flash * 255);
+                    let r = Math.min(255, 140 + heat);
+                    let g = Math.min(255, 50 + heat * 0.8);
+                    let b = Math.min(255, 15 + Math.floor(heat * 0.4));
+                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    ctx.fill();
+                });
+                const circuitoActivo = interruptorCerrado && !bombillaFundida && voltajeBateria > 0;
+                if (conductorEstrecho) {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, currentCTop);
+                    ctx.fillRect(0, currentCBottom, canvas.width, canvas.height - currentCBottom);
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, currentCTop); ctx.lineTo(canvas.width, currentCTop);
+                    ctx.moveTo(0, currentCBottom); ctx.lineTo(canvas.width, currentCBottom);
+                    ctx.stroke();
+                }
+                electrons.forEach(e => {
+                    let fx = circuitoActivo ? (0.4 + (voltajeBateria * 0.15)) : 0;
+                    e.vx = e.vx * 0.94 + (Math.random() - 0.5) * 1.2 + fx;
+                    e.vy = e.vy * 0.94 + (Math.random() - 0.5) * 1.2;
+                    e.x += e.vx; e.y += e.vy;
+                    atoms.forEach(atom => {
+                        const dx = e.x - atom.x, dy = e.y - atom.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < e.r + atom.r) {
+                            const nx = dx/dist, ny = dy/dist;
+                            const vn = e.vx*nx + e.vy*ny;
+                            if (vn < 0) {
+                                e.vx -= 1.8 * vn * nx; e.vy -= 1.8 * vn * ny;
+                                let incrementoFlash = circuitoActivo ? (0.2 + voltajeBateria * 0.08) : 0.4;
+                                let maxFlash = circuitoActivo ? (0.8 + voltajeBateria * 0.2) : 1.0;
+                                atom.flash = Math.min(atom.flash + incrementoFlash, maxFlash);
+                            }
+                            e.x = atom.x + nx * (e.r + atom.r + 0.1);
+                        }
+                    });
+                    if (e.y < currentCTop + e.r) { e.y = currentCTop + e.r; e.vy *= -1; }
+                    if (e.y > currentCBottom - e.r) { e.y = currentCBottom - e.r; e.vy *= -1; }
+                    if (e.x > canvas.width) e.x = 0;
+                    if (e.x < 0) e.x = canvas.width;
+                    ctx.beginPath();
+                    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+                    ctx.fillStyle = '#60a5fa';
+                    ctx.fill();
+                });
+                requestAnimationFrame(draw);
+            }
+            resize();
+            draw();
+        };
+    </script>
+</body>
+</html>
